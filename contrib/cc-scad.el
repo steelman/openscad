@@ -29,27 +29,53 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (let ((load-path
-	 (if (and (boundp 'byte-compile-dest-file)
-		  (stringp byte-compile-dest-file))
-	     (cons (file-name-directory byte-compile-dest-file) load-path)
-	   load-path)))
-    (load "cc-bytecomp" nil t)))
-
 (require 'cc-mode)
 
-;; ;; Silence the byte compiler.
-;; (cc-bytecomp-defvar font-lock-mode)	; Checked with boundp before use.
-;; (cc-bytecomp-defvar c-new-BEG)
-;; (cc-bytecomp-defvar c-new-END)
+(defcustom scad-keywords
+  '("return" "true" "false")
+  "SCAD keywords."
+  :type 'list
+  :group 'scad-font-lock)
 
-;; ;; Some functions in cc-engine that are used below.  There's a cyclic
-;; ;; dependency so it can't be required here.  (Perhaps some functions
-;; ;; could be moved to cc-engine to avoid it.)
-;; (cc-bytecomp-defun c-backward-token-1)
-;; (cc-bytecomp-defun c-beginning-of-statement-1)
-;; (cc-bytecomp-defun c-backward-sws)
+(defcustom scad-functions
+  '("cos" "acos" "sin" "asin" "tan" "atan" "atan2"                      ;;func.cc
+    "abs" "sign" "rands" "min" "max" 
+    "round" "ceil" "floor" 
+    "pow" "sqrt" "exp" "log" "ln"
+    "str" 
+    "lookup" "version" "version_num" "len" "search"
+    "dxf_dim" "dxf_cross"                                               ;;dxfdim.cc
+    )
+  "SCAD functions."
+  :type 'list
+  :group 'scad-font-lock)
+
+(defcustom scad-modules
+  '("child" "echo" "assign" "for" "intersection_for" "if" "else"        ;;control.cc
+    "cube" "sphere" "cylinder" "polyhedron" "square" "circle" "polygon" ;;primitives.cc
+    "scale" "rotate" "translate" "mirror" "multmatrix"                  ;;transform.cc
+    "union" "difference" "intersection"                                 ;;csgops.cc
+    "render"                                                            ;;render.cc
+    "color"                                                             ;;color.cc
+    "surface"                                                           ;;surface.cc
+    "dxf_linear_extrude" "linear_extrude"                               ;;linearextrude.cc
+    "dxf_rotate_extrude" "rotate_extrude"                               ;;rotateextrude.cc
+    "import_stl" "import_off" "import_dxf" "import"                     ;;import.cc
+    "group"                                                             ;;builtin.cc
+    "projection"                                                        ;;projection.cc
+    "minkowski" "glide" "subdiv" "hull" "resize"                        ;;cgaladv.cc
+    )
+  "SCAD modules."
+  :type 'list
+  :group 'scad-font-lock)
+
+(defvar scad-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [(control c) (control o)] 'scad-open-current-buffer)
+    (define-key map [(control c) (control s)] 'c-show-syntactic-information)
+    (define-key map [return] 'newline-and-indent) 
+    map)
+  "Keymap for `scad-mode'.")
 
 (defvar scad-mode-syntax-table
   (let ((st (make-syntax-table)))
@@ -77,6 +103,10 @@
     st)
   "Syntax table for `scad-mode'.")
 
+(defvar scad-keywords-regexp (regexp-opt scad-keywords 'words))
+(defvar scad-modules-regexp (regexp-opt scad-modules 'words))
+(defvar scad-functions-regexp (regexp-opt scad-functions 'words))
+
 (defvar scad-font-lock-keywords
   `(
     ("\\(module\\|function\\)[ \t]+\\(\\sw+\\)" (1 'font-lock-keyword-face nil) (2 'font-lock-function-name-face nil t))
@@ -84,18 +114,20 @@
     ("$\\(\\sw+\\)" (1 'font-lock-builtin-face nil))
     (,scad-keywords-regexp . font-lock-keyword-face)
     (,scad-modules-regexp .  font-lock-builtin-face)
-    (,scad-functions-regexp .  font-lock-function-name-face)
-    ;(,scad-operators-regexp .  font-lock-operator-face) ;; This actually looks pretty ugly
-    ;("\\(\\<\\S +\\>\\)\\s *(" 1 font-lock-function-name-face t) ;; Seems to override other stuff (e.g. in comments and builtins)
-    )
+    (,scad-functions-regexp .  font-lock-function-name-face))
   "Keyword highlighting specification for `scad-mode'.")
+(defconst scad-font-lock-keywords-1 scad-font-lock-keywords)
+(defconst scad-font-lock-keywords-2 scad-font-lock-keywords)
+(defconst scad-font-lock-keywords-3 scad-font-lock-keywords)
 
 (defvar scad-indent-style nil
-  "The stlye indentation for scad-mode. Defaults to \"gnu\" if nil.")
+  "The stlye indentation for scad-mode. Defaults to \"gnu\" if
+  nil. If you want to set the style with file local variables use
+  the `c-file-style' variable")
 
 (put 'scad-mode 'c-mode-prefix "scad-")
 ;;;###autoload
-(define-derived-mode scad-mode prog-mode "AWK"
+(define-derived-mode scad-mode prog-mode "SCAD"
   "Major mode for editing OpenSCAD code.
 
 To see what version of CC Mode you are running, enter `\\[c-version]'.
@@ -105,14 +137,15 @@ initialization, then `scad-mode-hook'.
 
 Key bindings:
 \\{scad-mode-map}"
-  (c-initialize-cc-mode t)
+  (c-initialize-cc-mode)
   ;; (setq local-abbrev-table scad-mode-abbrev-table
   ;; 	abbrev-mode t)
   (use-local-map scad-mode-map)
-  (c-init-language-vars scad-mode)
+  ;(c-init-language-vars scad-mode)
   ;; BUG: comments in cc-mode.el do not mention the requierd style
   ;; argument
   (c-basic-common-init 'scad-mode (or scad-indent-style "gnu"))
+  (c-font-lock-init)
   ;; (c-awk-unstick-NL-prop)
 
   (c-run-mode-hooks 'c-mode-common-hook 'scad-mode-hook)
