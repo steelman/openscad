@@ -11,12 +11,12 @@
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
-;; 
+;;
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
-;; 
+;;
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program; see the file COPYING.  If not, write to
 ;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
@@ -39,10 +39,10 @@
 
 (defcustom scad-functions
   '("cos" "acos" "sin" "asin" "tan" "atan" "atan2"                      ;;func.cc
-    "abs" "sign" "rands" "min" "max" 
-    "round" "ceil" "floor" 
+    "abs" "sign" "rands" "min" "max"
+    "round" "ceil" "floor"
     "pow" "sqrt" "exp" "log" "ln"
-    "str" 
+    "str"
     "lookup" "version" "version_num" "len" "search"
     "dxf_dim" "dxf_cross"                                               ;;dxfdim.cc
     )
@@ -73,14 +73,14 @@
   (let ((map (make-sparse-keymap)))
     (define-key map [(control c) (control o)] 'scad-open-current-buffer)
     (define-key map [(control c) (control s)] 'c-show-syntactic-information)
-    (define-key map [return] 'newline-and-indent) 
+    (define-key map [return] 'newline-and-indent)
     map)
   "Keymap for `scad-mode'.")
 
 (defvar scad-mode-syntax-table
   (let ((st (make-syntax-table)))
-    ;; support comment style (b): “// ...” 
-    ;; support comment style (a): “/* ... */” 
+    ;; support comment style (b): “// ...”
+    ;; support comment style (a): “/* ... */”
     (modify-syntax-entry ?\/ ". 124b" st)
     (modify-syntax-entry ?\n "> b" st)
     (modify-syntax-entry ?* ". 23" st)
